@@ -1,0 +1,654 @@
+{
+  "info": {
+    "name": "Telegram File Manager API",
+    "description": "Complete API collection for managing files in Telegram using GramJS",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "telegram-file-manager-api",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    }
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Start Authentication",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.environment.set('sessionId', responseJson.sessionId);",
+                  "    pm.test('Session ID received', function () {",
+                  "        pm.expect(responseJson.sessionId).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phoneNumber}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "start"]
+            },
+            "description": "Start the authentication process by providing phone number"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.environment.set('authToken', responseJson.token);",
+                  "    pm.environment.set('sessionString', responseJson.user.sessionString);",
+                  "    pm.test('Authentication successful', function () {",
+                  "        pm.expect(responseJson.token).to.exist;",
+                  "        pm.expect(responseJson.message).to.eql('Authentication successful');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"code\": \"{{verificationCode}}\",\n  \"password\": \"{{twoFactorPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify"]
+            },
+            "description": "Verify SMS code and complete authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User info retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.user).to.exist;",
+                  "    pm.expect(responseJson.user.id).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Get current authenticated user information"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Logout and invalidate current session"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for managing user sessions"
+    },
+    {
+      "name": "File Management",
+      "item": [
+        {
+          "name": "Upload and Send File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('File uploaded successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.message).to.include('successfully');",
+                  "    pm.expect(responseJson.telegramResult.messageId).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "caption",
+                  "value": "{{fileCaption}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload"]
+            },
+            "description": "Upload a file and send it to Saved Messages"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Existing File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filePath\": \"{{existingFilePath}}\",\n  \"caption\": \"{{fileCaption}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "send"]
+            },
+            "description": "Send an existing file from server to Saved Messages"
+          },
+          "response": []
+        },
+        {
+          "name": "Download File from Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('File downloaded successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.filePath).to.exist;",
+                  "    pm.expect(responseJson.downloadUrl).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": {{messageId}},\n  \"fileName\": \"{{customFileName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "download"]
+            },
+            "description": "Download a file from a specific Telegram message"
+          },
+          "response": []
+        },
+        {
+          "name": "List Uploaded Files",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Files list retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.files).to.be.an('array');",
+                  "    pm.expect(responseJson.count).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/uploads",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "uploads"]
+            },
+            "description": "List all files in the uploads directory"
+          },
+          "response": []
+        },
+        {
+          "name": "List Downloaded Files",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/downloads",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "downloads"]
+            },
+            "description": "List all files in the downloads directory"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Upload File",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/uploads/{{fileName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "uploads", "{{fileName}}"]
+            },
+            "description": "Delete a file from the uploads directory"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Download File",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/downloads/{{fileName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "downloads", "{{fileName}}"]
+            },
+            "description": "Delete a file from the downloads directory"
+          },
+          "response": []
+        }
+      ],
+      "description": "File management endpoints for uploading, downloading, and managing files"
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get Messages",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Messages retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.messages).to.be.an('array');",
+                  "    pm.expect(responseJson.count).to.be.a('number');",
+                  "    // Store first message ID for other tests",
+                  "    if (responseJson.messages.length > 0) {",
+                  "        pm.environment.set('messageId', responseJson.messages[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages?limit={{messageLimit}}&offset={{messageOffset}}&mediaOnly={{mediaOnly}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "{{messageLimit}}"
+                },
+                {
+                  "key": "offset",
+                  "value": "{{messageOffset}}"
+                },
+                {
+                  "key": "mediaOnly",
+                  "value": "{{mediaOnly}}"
+                }
+              ]
+            },
+            "description": "Get messages from Saved Messages with optional filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Message",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{messageId}}"]
+            },
+            "description": "Get details of a specific message by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Text Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"{{messageText}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages"]
+            },
+            "description": "Send a text message to Saved Messages"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{messageId}}"]
+            },
+            "description": "Delete a message from Saved Messages"
+          },
+          "response": []
+        }
+      ],
+      "description": "Message management endpoints for sending, retrieving, and deleting messages"
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "API Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('API is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('OK');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Check API server health and status"
+          },
+          "response": []
+        },
+        {
+          "name": "API Documentation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": ["{{baseUrl}}"],
+              "path": ["api"]
+            },
+            "description": "Get API documentation and available endpoints"
+          },
+          "response": []
+        }
+      ],
+      "description": "Health check and documentation endpoints"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Set default values if not already set",
+          "if (!pm.environment.get('baseUrl')) {",
+          "    pm.environment.set('baseUrl', 'http://localhost:3000');",
+          "}",
+          "",
+          "if (!pm.environment.get('messageLimit')) {",
+          "    pm.environment.set('messageLimit', '10');",
+          "}",
+          "",
+          "if (!pm.environment.get('messageOffset')) {",
+          "    pm.environment.set('messageOffset', '0');",
+          "}",
+          "",
+          "if (!pm.environment.get('mediaOnly')) {",
+          "    pm.environment.set('mediaOnly', 'false');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Global test for all requests",
+          "pm.test('Response time is reasonable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(30000);",
+          "});",
+          "",
+          "pm.test('Response has proper JSON format', function () {",
+          "    if (pm.response.headers.get('Content-Type').includes('application/json')) {",
+          "        pm.response.to.be.json;",
+          "    }",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "phoneNumber",
+      "value": "+1234567890",
+      "type": "string"
+    },
+    {
+      "key": "verificationCode",
+      "value": "12345",
+      "type": "string"
+    },
+    {
+      "key": "twoFactorPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fileCaption",
+      "value": "Uploaded via API",
+      "type": "string"
+    },
+    {
+      "key": "existingFilePath",
+      "value": "./uploads/sample.pdf",
+      "type": "string"
+    },
+    {
+      "key": "customFileName",
+      "value": "custom_download.pdf",
+      "type": "string"
+    },
+    {
+      "key": "messageText",
+      "value": "Hello from API!",
+      "type": "string"
+    },
+    {
+      "key": "messageLimit",
+      "value": "10",
+      "type": "string"
+    },
+    {
+      "key": "messageOffset",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "mediaOnly",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "fileName",
+      "value": "example.pdf",
+      "type": "string"
+    }
+  ]
+}
