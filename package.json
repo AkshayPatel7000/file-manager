@@ -1,10 +1,14 @@
 {
   "name": "telegram-file-manager",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/api/server.js",
   "scripts": {
+    "start": "node src/api/server.js",
     "api": "node src/api/server.js",
     "dev": "nodemon src/api/server.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   },
   "keywords": [],
   "author": "",

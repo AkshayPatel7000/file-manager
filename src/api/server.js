@@ -32,6 +32,7 @@ class TelegramAPIServer {
       cors({
         origin: process.env.ALLOWED_ORIGINS?.split(",") || [
           "http://localhost:3000",
+          "*",
         ],
         credentials: true,
       })
@@ -108,14 +109,16 @@ class TelegramAPIServer {
     try {
       // Connect to MongoDB
       await connectDB();
-      
+
       this.app.listen(this.port, () => {
         console.log(`🚀 Telegram API Server running on port ${this.port}`);
-        console.log(`📊 Health check: http://localhost:${this.port}/api/health`);
+        console.log(
+          `📊 Health check: http://localhost:${this.port}/api/health`
+        );
         console.log(`📚 API docs: http://localhost:${this.port}/api`);
       });
     } catch (error) {
-      console.error('Failed to start server:', error);
+      console.error("Failed to start server:", error);
       process.exit(1);
     }
   }
