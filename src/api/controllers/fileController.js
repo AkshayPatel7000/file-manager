@@ -59,6 +59,8 @@ class FileController {
 
   // Upload and send file to Saved Messages
   async uploadAndSend(req, res, next) {
+    let filePath = null;
+
     try {
       const { client } = req.telegramSession;
       const fileManager = new FileManager(client);
@@ -69,8 +71,10 @@ class FileController {
         });
       }
 
+      // Store file path for cleanup
+      filePath = req.file.path;
+
       // Verify the file was actually saved
-      const filePath = req.file.path;
       try {
         await fs.access(filePath);
       } catch (error) {
@@ -88,6 +92,15 @@ class FileController {
         caption || ""
       );
 
+      // Delete the local file after successful upload to Telegram
+      try {
+        await fs.unlink(filePath);
+        console.log(`Local file deleted: ${filePath}`);
+      } catch (deleteError) {
+        console.error(`Failed to delete local file: ${filePath}`, deleteError);
+        // Don't fail the request if file deletion fails, just log it
+      }
+
       res.json({
         message: "File uploaded and sent successfully",
         file: {
@@ -103,6 +116,19 @@ class FileController {
         },
       });
     } catch (error) {
+      // If there's an error and we have a file path, try to clean it up
+      if (filePath) {
+        try {
+          await fs.unlink(filePath);
+          console.log(`Local file deleted after error: ${filePath}`);
+        } catch (deleteError) {
+          console.error(
+            `Failed to delete local file after error: ${filePath}`,
+            deleteError
+          );
+        }
+      }
+
       next(error);
     }
   }

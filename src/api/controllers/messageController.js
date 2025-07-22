@@ -1,11 +1,8 @@
-const FileManager = require("../../fileManager");
-
 class MessageController {
   // Get messages from Saved Messages
   async getMessages(req, res, next) {
     try {
       const { client } = req.telegramSession;
-      const fileManager = new FileManager(client);
       const { limit = 10, offset = 0, mediaOnly = false } = req.query;
 
       const messages = await client.getMessages("me", {
@@ -18,14 +15,48 @@ class MessageController {
         filteredMessages = messages.filter((msg) => msg.media);
       }
 
-      const formattedMessages = filteredMessages.map((msg) => ({
-        id: msg.id,
-        date: msg.date,
-        text: msg.text || "",
-        hasMedia: !!msg.media,
-        mediaType: msg.media ? this.getMediaType(msg.media) : null,
-        mediaInfo: msg.media ? this.getMediaInfo(msg.media) : null,
-      }));
+      const formattedMessages = await Promise.all(
+        filteredMessages.map(async (msg) => {
+          let mediaBase64 = null;
+          let downloadedPath = null;
+
+          // Download media if present
+          if (msg.media.photo) {
+            try {
+              // Download media and get buffer
+              const buffer = await client.downloadMedia(msg.media, {
+                thumb: 0,
+              });
+
+              if (buffer) {
+                // Convert buffer to base64
+                mediaBase64 = `data:${this.getMimeType(
+                  msg.media
+                )};base64,${buffer.toString("base64")}`;
+
+                // Optionally, you can also save to file and return path
+                // downloadedPath = await fileManager.saveMedia(buffer, msg.id);
+              }
+            } catch (downloadError) {
+              console.error(
+                `Failed to download media for message ${msg.id}:`,
+                downloadError
+              );
+            }
+          }
+
+          return {
+            id: msg.id,
+            date: msg.date,
+            text: msg.text || "",
+            hasMedia: !!msg.media,
+            mediaType: msg.media ? this.getMediaType(msg.media) : null,
+            mediaInfo: msg.media ? this.getMediaInfo(msg.media) : null,
+            mediaBase64: mediaBase64, // Base64 encoded media
+            mediaPath: downloadedPath, // Optional file path
+          };
+        })
+      );
 
       res.json({
         messages: formattedMessages,
@@ -37,7 +68,7 @@ class MessageController {
     }
   }
 
-  // Get specific message
+  // Get specific message (also updated to include media download)
   async getMessage(req, res, next) {
     try {
       const { client } = req.telegramSession;
@@ -54,6 +85,24 @@ class MessageController {
       }
 
       const msg = messages[0];
+      let mediaBase64 = null;
+
+      // Download media if present
+      if (msg.media) {
+        try {
+          const buffer = await client.downloadMedia(msg.media);
+          if (buffer) {
+            mediaBase64 = `data:${this.getMimeType(
+              msg.media
+            )};base64,${buffer.toString("base64")}`;
+          }
+        } catch (downloadError) {
+          console.error(
+            `Failed to download media for message ${msg.id}:`,
+            downloadError
+          );
+        }
+      }
 
       res.json({
         message: {
@@ -63,6 +112,7 @@ class MessageController {
           hasMedia: !!msg.media,
           mediaType: msg.media ? this.getMediaType(msg.media) : null,
           mediaInfo: msg.media ? this.getMediaInfo(msg.media) : null,
+          mediaBase64: mediaBase64,
         },
       });
     } catch (error) {
@@ -129,6 +179,15 @@ class MessageController {
       return "document";
     }
     return "unknown";
+  }
+
+  // New helper method to get MIME type for base64 data URL
+  getMimeType(media) {
+    if (media.photo) return "image/jpeg";
+    if (media.document && media.document.mimeType) {
+      return media.document.mimeType;
+    }
+    return "application/octet-stream";
   }
 
   getMediaInfo(media) {
