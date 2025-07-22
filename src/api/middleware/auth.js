@@ -17,7 +17,7 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Check if session exists
-    let session = authController.getSession(decoded.sessionId);
+    let session = await authController.getSession(decoded.sessionId);
 
     if (!session) {
       // Recreate session from stored session string
@@ -47,6 +47,7 @@ const authMiddleware = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.log("🚀 ~ authMiddleware ~ error:", error);
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         error: "Invalid token",

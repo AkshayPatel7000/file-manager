@@ -2,11 +2,33 @@ const FileManager = require("../../fileManager");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs").promises;
+const fsSync = require("fs");
+
 require("dotenv").config({ quiet: true });
+
+// Ensure upload and download directories exist
+const ensureDirectories = () => {
+  const uploadDir = process.env.UPLOAD_PATH || "./uploads";
+  const downloadDir = process.env.DOWNLOAD_PATH || "./downloads";
+
+  if (!fsSync.existsSync(uploadDir)) {
+    fsSync.mkdirSync(uploadDir, { recursive: true });
+  }
+  if (!fsSync.existsSync(downloadDir)) {
+    fsSync.mkdirSync(downloadDir, { recursive: true });
+  }
+};
+
+// Create directories on startup
+ensureDirectories();
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, process.env.UPLOAD_PATH || "./uploads");
+    const uploadPath = process.env.UPLOAD_PATH
+      ? path.resolve(process.env.UPLOAD_PATH)
+      : path.resolve("uploads");
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -31,6 +53,8 @@ const upload = multer({
 class FileController {
   constructor() {
     this.upload = upload;
+    // Ensure directories exist when controller is instantiated
+    ensureDirectories();
   }
 
   // Upload and send file to Saved Messages
@@ -45,8 +69,18 @@ class FileController {
         });
       }
 
-      const { caption } = req.body;
+      // Verify the file was actually saved
       const filePath = req.file.path;
+      try {
+        await fs.access(filePath);
+      } catch (error) {
+        return res.status(500).json({
+          error: "File upload failed - file not saved",
+          details: error.message,
+        });
+      }
+
+      const { caption } = req.body;
 
       // Send to Telegram
       const result = await fileManager.sendFileToSavedMessages(
@@ -152,6 +186,7 @@ class FileController {
         filePath: filePath,
         fileName: path.basename(filePath),
         downloadUrl: `/downloads/${path.basename(filePath)}`,
+        media: messages[0].media,
       });
     } catch (error) {
       next(error);

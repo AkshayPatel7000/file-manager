@@ -201,8 +201,8 @@ class AuthController {
   }
 
   // Get session by ID (for middleware)
-  getSession(sessionId) {
-    return this.activeSessions.get(sessionId);
+  async getSession(sessionId) {
+    return await Session.findOne({ sessionId, isPending: true });
   }
 }
 

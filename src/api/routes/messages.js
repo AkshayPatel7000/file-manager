@@ -11,17 +11,14 @@ router.use(authMiddleware);
 router.get("/", messageController.getMessages.bind(messageController));
 
 // Get specific message
-router.get(
-  "/message/:messageId",
-  messageController.getMessage.bind(messageController)
-);
+router.get("/:messageId", messageController.getMessage.bind(messageController));
 
 // Send message
 router.post("/", messageController.sendMessage.bind(messageController));
 
 // Delete message
 router.delete(
-  "/message/:messageId",
+  "/:messageId",
   messageController.deleteMessage.bind(messageController)
 );
 
