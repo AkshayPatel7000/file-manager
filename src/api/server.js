@@ -5,7 +5,7 @@ const rateLimit = require("express-rate-limit");
 const path = require("path");
 require("dotenv").config({ quiet: true });
 const connectDB = require("../config/db");
-
+var morgan = require("morgan");
 const authRoutes = require("./routes/auth");
 const fileRoutes = require("./routes/files");
 const messageRoutes = require("./routes/messages");
@@ -26,7 +26,7 @@ class TelegramAPIServer {
 
     // Security middleware
     this.app.use(helmet());
-
+    this.app.use(morgan("combined"));
     // CORS configuration
     this.app.use(
       cors({
@@ -88,6 +88,8 @@ class TelegramAPIServer {
           files: "/api/files",
           messages: "/api/messages",
           health: "/api/health",
+          uploads: "/uploads",
+          downloads: "/downloads",
         },
       });
     });
